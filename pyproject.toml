@@ -1,0 +1,29 @@
+[project]
+name = "lp-utils"
+version = "0.1.0"
+description = "Utility functions I use for the LP project in Euclid (some cosmological computations and stuff to work with catalogs)"
+readme = "README.md"
+authors = [
+    { name = "Angelo Ferrari", email = "anferrar@bo.infn.it" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=2.2.3",
+    "polars>=1.24.0",
+    "scipy>=1.15.2",
+]
+
+[project.scripts]
+lp-utils = "lp_utils:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "lp-utils",
+]
+
+[tool.uv.sources]
+lp-utils = { workspace = true }
