@@ -5,7 +5,7 @@ import numpy as np
 from scipy import integrate, interpolate
 from scipy.special import hyp2f1
 
-from lp_utils.utils import SPEED_OF_LIGHT
+from lp_utils.utils import SPEED_OF_LIGHT, read_json
 
 
 class Cosmology:
@@ -61,12 +61,7 @@ class Cosmology:
         return cosmo_dict
 
     def _read_cosmo_file(self, filename):
-        # Get the package's config directory
-        config_dir = Path(__file__).parent / "config"
-        cosmo_file = config_dir / filename
-
-        with open(cosmo_file, "r", encoding="utf-8") as f:
-            cosmo_dict = json.load(f)
+        cosmo_dict = read_json(filename)
 
         # For istf, calculate Omega_r if not provided
         if "istf" in filename and "Omega_r" not in cosmo_dict:

@@ -1,6 +1,8 @@
 import socket
 import numpy as np
 import polars as pl
+from pathlib import Path
+import json
 
 SPEED_OF_LIGHT = 299_792.458  # km/s
 
@@ -54,10 +56,20 @@ def filter_catalog(df, narrow=False, filter_z=False, zmin=None, zmax=None):
 
 
 def filters_angles(df, angle1min, angle2min, widht=0.839, height=0.76):
-    angle1key = df.collect_schema().names()[0] # ok for both lazy and dataframes
+    angle1key = df.collect_schema().names()[0]  # ok for both lazy and dataframes
     angle2key = df.collect_schema().names()[0]
     filters = [
         pl.col(angle1key).is_between(angle1min, angle1min + width),
         pl.col(angle2key).is_between(angle2min, angle2min + height),
     ]
     return filters
+
+
+def read_json(filename):
+    # Get the package's config directory
+    config_dir = Path(__file__).parent / "config"
+    cosmo_file = config_dir / filename
+
+    with open(cosmo_file, "r", encoding="utf-8") as f:
+        json_dict = json.load(f)
+    return json_dict
