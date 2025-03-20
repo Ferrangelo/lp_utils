@@ -46,11 +46,21 @@ def corrfunc_angles_phi_neg(df, angle1_key, angle2_key):
 
 def filter_catalog(df, narrow=False, filter_z=False, zmin=None, zmax=None):
     if narrow:
-        width, height = 0.839, 0.76
-        b1min, b2min = -0.42, 1.19
-        filters = filters_angles(df, b1min, b2min)
+        rect_path = "/home/anferrar/Code/lp/randoms/params_rectangle_angles.json"
+        rect_read = Path(rect_path).read_text()
+        rect_params = json.loads(rect_read)
+        
+        angle1_min = rect_params['b1min']
+        width = rect_params['width']
+        angle2_min = rect_params['b2min']
+        height = rect_params['height']
+
+        filters = filters_angles(df, angle1_min, angle2_min, width, height)
         if filter_z:
-            filters.append(pl.col("z0").is_between(zmin, zmax))
+            zcols = [col for col in df_catalog.columns if col.startswith('z')]
+            assert len(zcols) == 1
+            zkey = zcols[0]
+            filters.append(pl.col(zkey).is_between(zmin, zmax))
         return df.filter(pl.all_horizontal(filters))
     return df.filter(pl.col("z0").is_between(0.05, 0.465))
 
