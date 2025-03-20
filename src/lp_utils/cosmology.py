@@ -4,6 +4,7 @@ from pathlib import Path
 import numpy as np
 from scipy import integrate, interpolate
 from scipy.special import hyp2f1
+from scipy.optimize import fsolve
 
 from lp_utils.utils import SPEED_OF_LIGHT, read_json
 
@@ -30,6 +31,7 @@ class Cosmology:
             self.sigma8 = self.cosmo["sigma8"]
             self.n_s = self.cosmo["n_s"]
             self.w = self.cosmo.get("w", -1.0)
+            self.As = self.cosmo.get("As")
         else:
             if None in (Omega_r, Omega_m, Omega_DE, Omega_k, h, sigma8):
                 raise ValueError(
@@ -107,12 +109,12 @@ class Cosmology:
         z = np.asarray(z_input)
         a = 1 / (1 + z)
         if norm == "MD":
-            return hyp2f1(1 / 3, 1, 11 / 6, (Om - 1) * a**3 / (Om))
+            return hyp2f1(1 / 3, 1, 11 / 6, (self.Omega_m - 1) * a**3 / (self.Omega_m))
         elif norm == "0":
             return (
                 a
-                * hyp2f1(1 / 3, 1, 11 / 6, (Om - 1) * a**3 / Om)
-                / hyp2f1(1 / 3, 1, 11 / 6, (Om - 1) / Om)
+                * hyp2f1(1 / 3, 1, 11 / 6, (self.Omega_m - 1) * a**3 / self.Omega_m)
+                / hyp2f1(1 / 3, 1, 11 / 6, (self.Omega_m - 1) / self.Omega_m)
             )
         else:
             raise ValueError("unknown norm type")
@@ -135,7 +137,7 @@ class Cosmology:
         vol_grid = np.array(
             [self.volume_zbin(zmin, zmax, fsky) for z in z_grid]
         )  # Calculate volumes
-        volume_interp = interp.interp1d(z_grid, vol_grid, kind="cubic")
+        volume_interp = interpolate.interp1d(z_grid, vol_grid, kind="cubic")
         return volume_interp
 
     def find_z_for_target_volume(self, volume_target, fsky, z_min=0, z_max=2):
@@ -198,4 +200,5 @@ def bacco_params(cosmo_dict, expfactor=1):
         "wa": cosmo_dict.get("wa", 0.0),
         "expfactor": expfactor,
     }
+
     return bacco_dict
