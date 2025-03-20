@@ -44,30 +44,47 @@ def corrfunc_angles_phi_neg(df, angle1_key, angle2_key):
     return df
 
 
-def filter_catalog(df, narrow=False, filter_z=False, zmin=None, zmax=None):
-    if narrow:
-        rect_path = "/home/anferrar/Code/lp/randoms/params_rectangle_angles.json"
-        rect_read = Path(rect_path).read_text()
-        rect_params = json.loads(rect_read)
-        
-        angle1_min = rect_params['b1min']
-        width = rect_params['width']
-        angle2_min = rect_params['b2min']
-        height = rect_params['height']
+def filter_catalog(
+    df,
+    narrow=False,
+    filter_z=False,
+    angle1min=None,
+    angle2min=None,
+    width=None,
+    height=None,
+    zmin=None,
+    zmax=None,
+):
+    if not narrow:
+        return df.filter(pl.col("z0").is_between(0.05, 0.465))
 
-        filters = filters_angles(df, angle1_min, angle2_min, width, height)
-        if filter_z:
-            zcols = [col for col in df_catalog.columns if col.startswith('z')]
-            assert len(zcols) == 1
-            zkey = zcols[0]
-            filters.append(pl.col(zkey).is_between(zmin, zmax))
-        return df.filter(pl.all_horizontal(filters))
-    return df.filter(pl.col("z0").is_between(0.05, 0.465))
+    filters = filters_angles(df, angle1min, angle2min, width, height)
+
+    if filter_z:
+        if zmin is None or zmax is None:
+            raise ValueError("zmin and zmax must be provided when filter_z is True")
+
+        zcols = [col for col in df.columns if col.startswith("z")]
+        if len(zcols) != 1:
+            raise ValueError(f"Expected exactly one z column, found {len(zcols)}")
+
+        zkey = zcols[0]
+        filters.append(pl.col(zkey).is_between(zmin, zmax))
+
+    return df.filter(pl.all_horizontal(filters))
 
 
-def filters_angles(df, angle1min, angle2min, widht=0.839, height=0.76):
+def filters_angles(df, angle1min=None, angle2min=None, width=None, height=None):
+    rect_params = read_json("params_rectangle_angles.json")
+
+    angle1min = angle1min if angle1min is not None else rect_params["b1min"]
+    angle2min = angle2min if angle2min is not None else rect_params["b2min"]
+    width = width if width is not None else rect_params["width"]
+    height = height if height is not None else rect_params["height"]
+
     angle1key = df.collect_schema().names()[0]  # ok for both lazy and dataframes
-    angle2key = df.collect_schema().names()[0]
+    angle2key = df.collect_schema().names()[1]
+    print(angle1key, angle2key)
     filters = [
         pl.col(angle1key).is_between(angle1min, angle1min + width),
         pl.col(angle2key).is_between(angle2min, angle2min + height),
