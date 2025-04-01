@@ -12,8 +12,10 @@ def set_paths():
 
     if host.lower() == "fedorat14":
         ssd_lp_path = "/run/media/anferrar/ssd1tb/work_archives/lp/"
-    else:
+    elif ("fisso" in host.lower()) or ("pop" in host.lower()):
         ssd_lp_path = "/media/anferrar/ssd1tb/work_archives/lp/"
+    else:
+        ssd_lp_path = "/lustre/euclid/aferrar/lp/"
 
     raygal_catalogs_path = ssd_lp_path + "catalogs/raygal/"
     raygal_diluted_path = raygal_catalogs_path + "diluted/"
