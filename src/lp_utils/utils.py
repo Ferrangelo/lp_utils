@@ -18,8 +18,9 @@ def set_paths():
     raygal_catalogs_path = ssd_lp_path + "catalogs/raygal/"
     raygal_diluted_path = raygal_catalogs_path + "diluted/"
     raygal_random_path = raygal_catalogs_path + "randoms/"
+    raygal_test_path = raygal_catalogs_path + "test/"
 
-    return raygal_catalogs_path, raygal_diluted_path, raygal_random_path
+    return raygal_catalogs_path, raygal_diluted_path, raygal_random_path, raygal_test_path
 
 
 def corrfunc_angles_phi_neg(df, angle1_key, angle2_key):
@@ -69,6 +70,7 @@ def filter_catalog(
             raise ValueError(f"Expected exactly one z column, found {len(zcols)}")
 
         zkey = zcols[0]
+        print(f"zkey: {zkey}")
         filters.append(pl.col(zkey).is_between(zmin, zmax))
 
     return df.filter(pl.all_horizontal(filters))
