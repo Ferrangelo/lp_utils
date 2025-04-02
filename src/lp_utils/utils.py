@@ -207,3 +207,187 @@ def find_catalog_files(
             matching_files.append(os.path.join(directory, filename))
 
     return matching_files
+
+
+def parse_corrfunc_filename(filename):
+    # Match patterns for different parameters in the filename
+    pair_type_pattern = r"py_mocks_(\w+)smu"  # DDsmu, DRsmu, or RRsmu
+    n_pattern = r"_(\d+\.\d+e[\+|-]\d+)"  # matches scientific notation numbers
+    mumax_pattern = r"mumax_(\d+\.\d+)"
+    mubins_pattern = r"mubins_(\d+)"
+    smin_pattern = r"smin_(\d+\.\d+)"
+    smax_pattern = r"smax_(\d+\.\d+)"
+    sbinsize_pattern = r"sbinsize_(\d+\.\d+)"
+    zmin_pattern = r"zmin_(\d+\.\d+)"
+    zmax_pattern = r"zmax_(\d+\.\d+)"
+    redshift_pattern = r"(?:_|^)(z(?:[0-5]|rsd))(?:\.dat)"  # matches z0-z5 or zrsd
+
+    # Extract values using regex
+    pair_type_match = re.search(pair_type_pattern, filename)
+    numbers = re.findall(
+        n_pattern, filename
+    )  # This will find all scientific notation numbers
+    mumax_match = re.search(mumax_pattern, filename)
+    mubins_match = re.search(mubins_pattern, filename)
+    smin_match = re.search(smin_pattern, filename)
+    smax_match = re.search(smax_pattern, filename)
+    sbinsize_match = re.search(sbinsize_pattern, filename)
+    zmin_match = re.search(zmin_pattern, filename)
+    zmax_match = re.search(zmax_pattern, filename)
+    redshift_match = re.search(redshift_pattern, filename)
+
+    # For DR files, we need both N and rand_N
+    n_dict = {}
+    if pair_type_match and pair_type_match.group(1) == "DR":
+        n_dict = (
+            {"N": float(numbers[0]), "rand_N": float(numbers[1])}
+            if len(numbers) >= 2
+            else {}
+        )
+    elif pair_type_match and  pair_type_match.group(1) == "RR":
+        n_dict = {"rand_N": float(numbers[0])} if numbers else {}
+    else:
+        n_dict = {"N": float(numbers[0])} if numbers else {}
+
+    return {
+        "pair_type": pair_type_match.group(1) if pair_type_match else None,
+        **n_dict,
+        "mumax": float(mumax_match.group(1)) if mumax_match else None,
+        "mubins": int(mubins_match.group(1)) if mubins_match else None,
+        "smin": float(smin_match.group(1)) if smin_match else None,
+        "smax": float(smax_match.group(1)) if smax_match else None,
+        "sbinsize": float(sbinsize_match.group(1)) if sbinsize_match else None,
+        "zmin": float(zmin_match.group(1)) if zmin_match else None,
+        "zmax": float(zmax_match.group(1)) if zmax_match else None,
+        "redshift_key": redshift_match.group(1) if redshift_match else None,
+    }
+
+
+
+def create_corrfunc_identifier(
+    pair_type: str = None,
+    N: float = None,
+    rand_N: float = None,
+    mumax: float = None,
+    mubins: int = None,
+    smin: float = None,
+    smax: float = None,
+    sbinsize: float = None,
+    zmin: float = None,
+    zmax: float = None,
+    redshift_key: str = None,
+) -> str:
+    """
+    Create a unique identifier based on the provided parameters.
+    Only includes parameters that are not None.
+    """
+    parts = []
+    
+    if pair_type is not None:
+        parts.append(pair_type)
+    if N is not None:
+        parts.append(f"N{N:.2e}")
+    if rand_N is not None and pair_type == "DR":
+        parts.append(f"Nr{rand_N:.2e}")
+    if mumax is not None:
+        parts.append(f"mumax{mumax}")
+    if mubins is not None:
+        parts.append(f"mubins{mubins}")
+    if smin is not None:
+        parts.append(f"smin{smin}")
+    if smax is not None:
+        parts.append(f"smax{smax}")
+    if sbinsize is not None:
+        parts.append(f"sbin{sbinsize}")
+    if zmin is not None:
+        parts.append(f"zmin{zmin}")
+    if zmax is not None:
+        parts.append(f"zmax{zmax}")
+    if redshift_key is not None:
+        parts.append(redshift_key)
+    
+    return "_".join(parts)
+
+
+
+def find_corrfunc_files(
+    directory: str,
+    pair_type: str = None,
+    N: float = None,
+    rand_N: float = None,
+    mumax: float = None,
+    mubins: int = None,
+    smin: float = None,
+    smax: float = None,
+    sbinsize: float = None,
+    zmin: float = None,
+    zmax: float = None,
+    redshift_key: str = None,
+    pattern: str = None,
+) -> tuple[list, str]:
+    """
+    Find all Corrfunc output files matching the given criteria in the specified directory.
+    Returns a tuple containing the list of matching files and a unique identifier.
+
+    Parameters:
+    -----------
+    [... same as before ...]
+
+    Returns:
+    --------
+    tuple
+        (List of full paths to matching files, unique identifier string)
+    """
+    matching_files = []
+
+    for filename in os.listdir(directory):
+        if pattern and not re.search(pattern, filename):
+            continue
+
+        info = parse_corrfunc_filename(filename)
+        if not info:
+            continue
+
+        matches = True
+        if pair_type is not None and info["pair_type"] != pair_type:
+            matches = False
+        if N is not None and info.get("N") != N:
+            matches = False
+        if rand_N is not None and info.get("rand_N") != rand_N:
+            matches = False
+        if mumax is not None and info["mumax"] != mumax:
+            matches = False
+        if mubins is not None and info["mubins"] != mubins:
+            matches = False
+        if smin is not None and info["smin"] != smin:
+            matches = False
+        if smax is not None and info["smax"] != smax:
+            matches = False
+        if sbinsize is not None and info["sbinsize"] != sbinsize:
+            matches = False
+        if zmin is not None and info["zmin"] != zmin:
+            matches = False
+        if zmax is not None and info["zmax"] != zmax:
+            matches = False
+        if redshift_key is not None and info["redshift_key"] != redshift_key:
+            matches = False
+
+        if matches:
+            matching_files.append(os.path.join(directory, filename))
+
+    # Create unique identifier based on input parameters
+    identifier = create_corrfunc_identifier(
+        pair_type=pair_type,
+        N=N,
+        rand_N=rand_N,
+        mumax=mumax,
+        mubins=mubins,
+        smin=smin,
+        smax=smax,
+        sbinsize=sbinsize,
+        zmin=zmin,
+        zmax=zmax,
+        redshift_key=redshift_key,
+    )
+
+    return matching_files, identifier
