@@ -1,8 +1,11 @@
+import json
+import os
+import re
 import socket
+from pathlib import Path
+
 import numpy as np
 import polars as pl
-from pathlib import Path
-import json
 
 SPEED_OF_LIGHT = 299_792.458  # km/s
 
@@ -22,7 +25,22 @@ def set_paths():
     raygal_random_path = raygal_catalogs_path + "randoms/"
     raygal_test_path = raygal_catalogs_path + "test/"
 
-    return raygal_catalogs_path, raygal_diluted_path, raygal_random_path, raygal_test_path
+    return (
+        raygal_catalogs_path,
+        raygal_diluted_path,
+        raygal_random_path,
+        raygal_test_path,
+    )
+
+
+def read_json(filename):
+    # Get the package's config directory
+    config_dir = Path(__file__).parent / "config"
+    cosmo_file = config_dir / filename
+
+    with open(cosmo_file, "r", encoding="utf-8") as f:
+        json_dict = json.load(f)
+    return json_dict
 
 
 def corrfunc_angles_phi_neg(df, angle1_key, angle2_key):
@@ -96,11 +114,96 @@ def filters_angles(df, angle1min=None, angle2min=None, width=None, height=None):
     return filters
 
 
-def read_json(filename):
-    # Get the package's config directory
-    config_dir = Path(__file__).parent / "config"
-    cosmo_file = config_dir / filename
+def parse_catalog_filename(filename):
+    # Match the exact string format between 'catalog_' and '_narrow'
+    number_pattern = r"catalog_([0-9.e+]+)"
+    zmin_pattern = r"zmin_(\d+\.\d+)"
+    zmax_pattern = r"zmax_(\d+\.\d+)"
+    redshift_pattern = r"(?:_|^)(z(?:[0-5]|rsd))(?:_|$)"  # matches z0-z5 or zrsd
 
-    with open(cosmo_file, "r", encoding="utf-8") as f:
-        json_dict = json.load(f)
-    return json_dict
+    number_match = re.search(number_pattern, filename)
+    zmin_match = re.search(zmin_pattern, filename)
+    zmax_match = re.search(zmax_pattern, filename)
+    redshift_match = re.search(redshift_pattern, filename)
+
+    return {
+        "catalog_number": number_match.group(1)
+        if number_match
+        else None,  # Keep as string
+        "zmin": float(zmin_match.group(1)) if zmin_match else None,
+        "zmax": float(zmax_match.group(1)) if zmax_match else None,
+        "redshift_key": redshift_match.group(1) if redshift_match else None,
+    }
+
+
+def find_catalog_file(
+    directory: str, zmin: float, zmax: float, redshift_key: str
+) -> str:
+    """
+    Find a catalog file matching the given criteria in the specified directory.
+    Returns the full path of the first matching file or None if no match is found.
+
+    # Example usage:
+    # matching_file = find_catalog_file(raygal_diluted_path, 0.9, 1.1, "z0")
+    # if matching_file:
+    #     print(f"Found matching file: {matching_file}")
+    # else:
+    #     print("No matching file found")
+
+    """
+    for filename in os.listdir(directory):
+        info = parse_catalog_filename(filename)
+        print(info)
+        if (
+            info
+            and info["zmin"] == zmin
+            and info["zmax"] == zmax
+            and info["redshift_key"] == redshift_key
+        ):
+            return os.path.join(directory, filename)
+    return None
+
+
+def find_catalog_files(
+    directory: str,
+    zmin: float = None,
+    zmax: float = None,
+    redshift_key: str = None,
+    pattern: str = None,
+) -> list:
+    """
+    Find all catalog files matching the given criteria in the specified directory.
+    Returns a list of full paths of matching files.
+
+    # Example usage:
+    # matching_files = find_catalog_files(
+    #     raygal_diluted_path,
+    #     zmin=0.9,
+    #     zmax=1.1,
+    #     redshift_key="z0",
+    #     pattern="particles"  # optional pattern to pre-filter files
+    # )
+
+    """
+    matching_files = []
+
+    for filename in os.listdir(directory):
+        if pattern and not re.search(pattern, filename):
+            continue
+
+        info = parse_catalog_filename(filename)
+        if not info:
+            continue
+
+        matches = True
+        if zmin is not None and info["zmin"] != zmin:
+            matches = False
+        if zmax is not None and info["zmax"] != zmax:
+            matches = False
+        if redshift_key is not None and info["redshift_key"] != redshift_key:
+            matches = False
+
+        if matches:
+            matching_files.append(os.path.join(directory, filename))
+
+    return matching_files
