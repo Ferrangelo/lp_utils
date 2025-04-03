@@ -6,6 +6,7 @@ from pathlib import Path
 
 import numpy as np
 import polars as pl
+from matplotlib import pyplot as plt
 
 SPEED_OF_LIGHT = 299_792.458  # km/s
 
@@ -244,7 +245,7 @@ def parse_corrfunc_filename(filename):
             if len(numbers) >= 2
             else {}
         )
-    elif pair_type_match and  pair_type_match.group(1) == "RR":
+    elif pair_type_match and pair_type_match.group(1) == "RR":
         n_dict = {"rand_N": float(numbers[0])} if numbers else {}
     else:
         n_dict = {"N": float(numbers[0])} if numbers else {}
@@ -261,7 +262,6 @@ def parse_corrfunc_filename(filename):
         "zmax": float(zmax_match.group(1)) if zmax_match else None,
         "redshift_key": redshift_match.group(1) if redshift_match else None,
     }
-
 
 
 def create_corrfunc_identifier(
@@ -282,7 +282,7 @@ def create_corrfunc_identifier(
     Only includes parameters that are not None.
     """
     parts = []
-    
+
     if pair_type is not None:
         parts.append(pair_type)
     if N is not None:
@@ -305,9 +305,8 @@ def create_corrfunc_identifier(
         parts.append(f"zmax{zmax}")
     if redshift_key is not None:
         parts.append(redshift_key)
-    
-    return "_".join(parts)
 
+    return "_".join(parts)
 
 
 def find_corrfunc_files(
@@ -391,3 +390,89 @@ def find_corrfunc_files(
     )
 
     return matching_files, identifier
+
+
+def get_out_filename(filename, filepath):
+    output_file = test_path + filename
+    if filepath.endswith(".txt"):
+        output_file = test_path + filename.split("txt")[0] + "parquet"
+    return output_file
+
+
+def sample_and_save_test(filename, filepath):
+    output_file = get_out_filename(filename, filepath)
+    if os.path.exists(output_file):
+        print("File already exists, skipping...")
+        return
+    else:
+        print(f"{output_file}")
+        if filepath.endswith(".parquet"):
+            sample_and_save_test_parquet(filepath, output_file)
+        elif filepath.endswith(".txt"):
+            sample_and_save_test_txt(filepath, output_file)
+        else:
+            print("File format not supported")
+            return
+
+
+def sample_and_save_test_parquet(filepath, output_file):
+    df = pl.read_parquet(filepath)
+    samp_df = df.sample(n=100000, with_replacement=False)
+    # Assuming the columns are in the correct order, rename them
+    samp_df = samp_df.rename(
+        {
+            samp_df.columns[0]: "angle1",
+            samp_df.columns[1]: "angle2",
+            samp_df.columns[2]: "d_or_z",
+        }
+    )
+    samp_df.write_parquet(output_file)
+
+
+def sample_and_save_test_txt(filepath, output_file):
+    df_read = np.loadtxt(filepath).T
+    npoints = 100000
+    step = len(df_read[0]) // npoints
+    b1 = df_read[0][::step]
+    b2 = df_read[1][::step]
+    z = df_read[2][::step]
+    samp_df = pl.DataFrame(
+        {"angle1": b1.tolist(), "angle2": b2.tolist(), "d_or_z": z.tolist()}
+    )
+    samp_df.write_parquet(output_file)
+
+
+def read_test_file_and_plot(filepath):
+    samp_df = pl.read_parquet(filepath)
+    b1 = None
+    b1 = None
+    z = None
+
+    for col1, col2 in [("angle1", "angle2"), ("RA", "DEC"), ("beta1", "beta2")]:
+        if col1 in samp_df.columns and col2 in samp_df.columns:
+            b1 = samp_df[col1]
+            b2 = samp_df[col2]
+            break
+
+    if b1 is not None:
+        plt.figure(figsize=(3, 3))
+        plt.scatter(b1, b2, s=0.1)
+        plt.title("Raygal angles distribution (rotated)")
+        plt.xlabel(r"angle1", fontsize=9)
+        plt.ylabel(r"angle1", fontsize=9)
+        plt.tight_layout()
+
+    for col3 in ["d_or_z", "z0", "z1", "z2", "z3", "z4", "z5", "zrsd"]:
+        if col3 in samp_df.columns:
+            z = samp_df[col3]
+            break
+
+    if z is not None:
+        plt.figure(figsize=(8, 5))
+        plt.hist(z, bins=50, alpha=0.5, label="Distances or z", edgecolor="black")
+        plt.title(f"Histogram of {len(z)} Random Points")
+        plt.xlabel("Values")
+        plt.ylabel("Frequency")
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
