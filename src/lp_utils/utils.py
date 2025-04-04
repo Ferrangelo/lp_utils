@@ -93,9 +93,10 @@ def filter_catalog(
 
         zcols = [col for col in df.columns if col.startswith("z")]
         if len(zcols) != 1:
-            raise ValueError(f"Expected exactly one z column, found {len(zcols)}")
-
-        zkey = zcols[0]
+            print("More than one z column found, using z0")
+            zkey = "z0"
+        else:
+            zkey = zcols[0]
         print(f"zkey: {zkey}")
         filters.append(pl.col(zkey).is_between(zmin, zmax))
 
@@ -510,5 +511,5 @@ def rotate_catalog(df_catalog, angle1_key, angle2_key):
     b2r = np.arccos(z_rot)
 
     df_catalog = df_catalog.with_columns(
-        [pl.Series(name=angle1_key, value=b1r), pl.Series(name=angle2_key, value=b2r)]
+        [pl.Series(name=angle1_key, values=b1r), pl.Series(name=angle2_key, values=b2r)]
     )
