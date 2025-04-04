@@ -18,8 +18,10 @@ def set_paths():
         ssd_lp_path = "/run/media/anferrar/ssd1tb/work_archives/lp/"
     elif ("fisso" in host.lower()) or ("pop" in host.lower()):
         ssd_lp_path = "/media/anferrar/ssd1tb/work_archives/lp/"
-    else:
+    elif "recas" in host.lower():
         ssd_lp_path = "/lustre/euclid/aferrar/lp/"
+    else:
+        ssd_lp_path = "/g100_scratch/userexternal/aferrar3/lp/"
 
     raygal_catalogs_path = ssd_lp_path + "catalogs/raygal/"
     raygal_diluted_path = raygal_catalogs_path + "diluted/"
