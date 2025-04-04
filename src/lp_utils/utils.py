@@ -513,3 +513,5 @@ def rotate_catalog(df_catalog, angle1_key, angle2_key):
     df_catalog = df_catalog.with_columns(
         [pl.Series(name=angle1_key, values=b1r), pl.Series(name=angle2_key, values=b2r)]
     )
+    
+    return df_catalog
