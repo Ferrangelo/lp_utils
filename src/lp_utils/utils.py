@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 import re
@@ -7,6 +8,8 @@ from pathlib import Path
 import numpy as np
 import polars as pl
 from matplotlib import pyplot as plt
+
+from scipy.spatial.transform import Rotation
 
 SPEED_OF_LIGHT = 299_792.458  # km/s
 
@@ -478,3 +481,34 @@ def read_test_file_and_plot(filepath):
         plt.legend()
         plt.grid(True)
         plt.tight_layout()
+
+
+def rotate_catalog(df_catalog, angle1_key, angle2_key):
+    b1 = copy.deepcopy(df_catalog[angle1_key])
+    b2 = copy.deepcopy(df_catalog[angle1_key])
+
+    x = np.array(np.cos(b1) * np.sin(b2))
+    y = np.array(np.sin(b1) * np.sin(b2))
+    z = np.array(np.cos(b2))
+
+    # Create rotation object
+    # Create rotations and combine them
+    Ry = Rotation.from_euler("y", -25, degrees=True)
+    Rz = Rotation.from_euler("z", -25, degrees=True)
+    Rtot = Ry * Rz
+
+    rotated_coords = Rtot.apply(
+        np.column_stack((x.flatten(), y.flatten(), z.flatten()))
+    )
+    x_rot = rotated_coords[:, 0].reshape(x.shape)
+    y_rot = rotated_coords[:, 1].reshape(y.shape)
+    z_rot = rotated_coords[:, 2].reshape(z.shape)
+
+    del x, y, z
+
+    b1r = np.arctan(y_rot / x_rot)
+    b2r = np.arccos(z_rot)
+
+    df_catalog = df_catalog.with_columns(
+        [pl.Series(name=angle1_key, value=b1r), pl.Series(name=angle2_key, value=b2r)]
+    )
