@@ -1,7 +1,7 @@
 [project]
 name = "lp-utils"
 version = "0.1.0"
-description = "Utility functions I use for the LP project in Euclid (some cosmological computations and stuff to work with catalogs)"
+description = "Functions and classes to work with catalogs (mostly from raygal simulations) and create input files for corrufnc."
 readme = "README.md"
 authors = [
     { name = "Angelo Ferrari", email = "anferrar@bo.infn.it" }
