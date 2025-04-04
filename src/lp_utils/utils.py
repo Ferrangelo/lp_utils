@@ -486,7 +486,7 @@ def read_test_file_and_plot(filepath):
 
 def rotate_catalog(df_catalog, angle1_key, angle2_key):
     b1 = copy.deepcopy(df_catalog[angle1_key])
-    b2 = copy.deepcopy(df_catalog[angle1_key])
+    b2 = copy.deepcopy(df_catalog[angle2_key])
 
     x = np.array(np.cos(b1) * np.sin(b2))
     y = np.array(np.sin(b1) * np.sin(b2))
