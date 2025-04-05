@@ -399,6 +399,7 @@ def find_corrfunc_files(
 
 
 def get_out_filename(filename, filepath):
+    _, test_path = set_paths()
     output_file = test_path + filename
     if filepath.endswith(".txt"):
         output_file = test_path + filename.split("txt")[0] + "parquet"
@@ -514,3 +515,15 @@ def rotate_catalog(df_catalog, angle1_key, angle2_key):
     )
     
     return df_catalog
+
+
+def get_output_filename(type, narrow, filter_z, zmin, zmax, N_particles, suffix):
+    if not narrow:
+        if filter_z:
+            filename = f"{type}_catalog_{N_particles:.2e}_fullsky_zmin_{zmin}_zmax_{zmax}{suffix}"
+    else:
+        if filter_z:
+            filename = f"{type}_catalog_{N_particles:.2e}_narrow_zmin_{zmin}_zmax_{zmax}{suffix}"
+        else:
+            filename = f"{type}_catalog_{N_particles:.2e}_narrow{suffix}"
+    return filename
