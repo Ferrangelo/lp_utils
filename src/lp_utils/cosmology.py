@@ -99,9 +99,24 @@ class Cosmology:
         )
         return Dh * integral[0]
 
-    def comoving_distance_interp(self):
+    def comoving_distance_late_times(self, z, h_units=True):
+        h = 1.0
+        if not h_units:
+            h = self.h
+        Dh = SPEED_OF_LIGHT * 0.01 / h
+        integral = integrate.quad(
+            lambda x: 1.0 / self.E_late_times(x), 0.0, z, points=10000
+        )
+        return Dh * integral[0]
+
+    def comoving_distance_interp(self, use_late_times=False):
         z_vals = np.linspace(0.0, 2.5, 4000)
-        dist_vals = np.array([self.comoving_distance(z) for z in z_vals])
+        distance_func = (
+            self.comoving_distance_late_times
+            if use_late_times
+            else self.comoving_distance
+        )
+        dist_vals = np.array([distance_func(z) for z in z_vals])
         distance_cubic_interp = interpolate.interp1d(z_vals, dist_vals, kind="cubic")
         return distance_cubic_interp
 
