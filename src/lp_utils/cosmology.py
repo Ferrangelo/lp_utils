@@ -134,8 +134,8 @@ class Cosmology:
         else:
             raise ValueError("unknown norm type")
 
-    def volume_zbin(self, zi, zf, fsky=None, solid_angle=None):
-        r = self.comoving_distance_interp()
+    def volume_zbin(self, zi, zf, fsky=None, solid_angle=None, use_late_times=False):
+        r = self.comoving_distance_interp(use_late_times)
         if fsky is not None:
             omega = 4 * np.pi * fsky
         elif solid_angle is not None:
