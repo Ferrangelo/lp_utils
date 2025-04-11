@@ -472,8 +472,6 @@ def read_test_file_and_plot(filepath):
     for col3 in ["d_or_z", "z0", "z1", "z2", "z3", "z4", "z5", "zrsd"]:
         if col3 in samp_df.columns:
             z = samp_df[col3]
-
-        if z is not None:
             plt.figure(figsize=(8, 5))
             plt.hist(z, bins=50, alpha=0.5, label="Distances or z", edgecolor="black")
             plt.title(f"Histogram of {len(z)} Random Points")
