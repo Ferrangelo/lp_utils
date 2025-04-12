@@ -109,8 +109,9 @@ class Cosmology:
         )
         return Dh * integral[0]
 
-    def comoving_distance_interp(self, use_late_times=False):
-        z_vals = np.linspace(0.0, 2.5, 4000)
+    def comoving_distance_interp(self, use_late_times=False, z_vals=None):
+        if z_vals is None:
+            z_vals = np.linspace(0.0, 2.5, 4000)
         distance_func = (
             self.comoving_distance_late_times
             if use_late_times
@@ -134,8 +135,10 @@ class Cosmology:
         else:
             raise ValueError("unknown norm type")
 
-    def volume_zbin(self, zi, zf, fsky=None, solid_angle=None, use_late_times=False):
-        r = self.comoving_distance_interp(use_late_times)
+    def volume_zbin(
+        self, zi, zf, fsky=None, solid_angle=None, use_late_times=False, z_vals=None
+    ):
+        r = self.comoving_distance_interp(use_late_times, z_vals)
         if fsky is not None:
             omega = 4 * np.pi * fsky
         elif solid_angle is not None:
@@ -155,9 +158,11 @@ class Cosmology:
         volume_interp = interpolate.interp1d(z_grid, vol_grid, kind="cubic")
         return volume_interp
 
-    def find_z_for_target_volume(self, volume_target, fsky, z_min=0, z_max=2):
+    def find_z_for_target_volume(
+        self, volume_target, fsky, z_min=0, z_max=2, z_vals=None
+    ):
         return fsolve(
-            lambda z: self.volume_zbin(z, z_max, fsky=fsky) - volume_target,
+            lambda z: self.volume_zbin(z, z_max, fsky=fsky, z_vals=z_vals) - volume_target,
             (z_max + z_min) / 2,
         )[0]
 
