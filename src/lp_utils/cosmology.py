@@ -94,10 +94,21 @@ class Cosmology:
         if not h_units:
             h = self.h
         Dh = SPEED_OF_LIGHT * 0.01 / h
-        integral = integrate.quad(
-            lambda x: 1.0 / self.E_correct(x), 0.0, z, points=10000
-        )
-        return Dh * integral[0]
+        z = np.asarray(z)
+        if z.ndim == 0:
+            integral = integrate.quad(
+                lambda x: 1.0 / self.E_correct(x), 0.0, z, points=50000
+            )[0]
+        else:
+            integral = np.array(
+                [
+                    integrate.quad(
+                        lambda x: 1.0 / self.E_correct(x), 0.0, z_i, points=50000
+                    )[0]
+                    for z_i in z
+                ]
+            )
+        return Dh * integral
 
     def comoving_distance_late_times(self, z, h_units=True):
         h = 1.0
@@ -147,22 +158,28 @@ class Cosmology:
             raise ValueError("Either fsky or solid_angle must be provided")
         return omega * (r(zf) ** 3 - r(zi) ** 3) / 3
 
-    def get_vol_interp(self, zmin, zmax, fsky=None, solid_angle=None):
+    def get_vol_interp(
+        self, zmin=0, zmax=2.5, fsky=None, solid_angle=None, z_vals=None
+    ):
         # Create interpolator for volume_zbin function
-        z_grid = np.linspace(0, 2.5, 1000)  # Create fine z grid
+        if z_vals is None:
+            z_vals = np.linspace(0.0, 2.5, 4000)
         if solid_angle is not None:
             fsky = solid_angle / (4 * np.pi)
+
         vol_grid = np.array(
-            [self.volume_zbin(zmin, zmax, fsky) for z in z_grid]
+            [self.volume_zbin(zmin, zmax, fsky) for zmax in z_vals]
         )  # Calculate volumes
-        volume_interp = interpolate.interp1d(z_grid, vol_grid, kind="cubic")
+
+        volume_interp = interpolate.interp1d(z_vals, vol_grid, kind="cubic")
         return volume_interp
 
     def find_z_for_target_volume(
         self, volume_target, fsky, z_min=0, z_max=2, z_vals=None
     ):
         return fsolve(
-            lambda z: self.volume_zbin(z, z_max, fsky=fsky, z_vals=z_vals) - volume_target,
+            lambda z: self.volume_zbin(z, z_max, fsky=fsky, z_vals=z_vals)
+            - volume_target,
             (z_max + z_min) / 2,
         )[0]
 
