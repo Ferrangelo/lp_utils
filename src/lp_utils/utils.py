@@ -8,7 +8,6 @@ from pathlib import Path
 import numpy as np
 import polars as pl
 from matplotlib import pyplot as plt
-
 from scipy.spatial.transform import Rotation
 
 SPEED_OF_LIGHT = 299_792.458  # km/s
@@ -256,7 +255,7 @@ def parse_corrfunc_filename(filename):
     else:
         n_dict = {"N": float(numbers[0])} if numbers else {}
 
-    return {
+    final_dict = {
         "pair_type": pair_type_match.group(1) if pair_type_match else None,
         **n_dict,
         "mumax": float(mumax_match.group(1)) if mumax_match else None,
@@ -268,6 +267,8 @@ def parse_corrfunc_filename(filename):
         "zmax": float(zmax_match.group(1)) if zmax_match else None,
         "redshift_key": redshift_match.group(1) if redshift_match else None,
     }
+
+    return final_dict
 
 
 def create_corrfunc_identifier(
@@ -293,7 +294,8 @@ def create_corrfunc_identifier(
         parts.append(pair_type)
     if N is not None:
         parts.append(f"N{N:.2e}")
-    if rand_N is not None and pair_type == "DR":
+    # if rand_N is not None and pair_type == "DR":
+    if rand_N is not None:
         parts.append(f"Nr{rand_N:.2e}")
     if mumax is not None:
         parts.append(f"mumax{mumax}")
@@ -329,6 +331,7 @@ def find_corrfunc_files(
     zmax: float = None,
     redshift_key: str = None,
     pattern: str = None,
+    debug: bool = False,
 ) -> tuple[list, str]:
     """
     Find all Corrfunc output files matching the given criteria in the specified directory.
@@ -354,29 +357,28 @@ def find_corrfunc_files(
             continue
 
         matches = True
-        if pair_type is not None and info["pair_type"] != pair_type:
-            matches = False
-        if N is not None and info.get("N") != N:
-            matches = False
-        if rand_N is not None and info.get("rand_N") != rand_N:
-            matches = False
-        if mumax is not None and info["mumax"] != mumax:
-            matches = False
-        if mubins is not None and info["mubins"] != mubins:
-            matches = False
-        if smin is not None and info["smin"] != smin:
-            matches = False
-        if smax is not None and info["smax"] != smax:
-            matches = False
-        if sbinsize is not None and info["sbinsize"] != sbinsize:
-            matches = False
-        if zmin is not None and info["zmin"] != zmin:
-            matches = False
-        if zmax is not None and info["zmax"] != zmax:
-            matches = False
-        if redshift_key is not None and info["redshift_key"] != redshift_key:
-            matches = False
 
+        params_to_check = {
+            "pair_type": pair_type,
+            "N": N,
+            "rand_N": rand_N,
+            "mumax": mumax,
+            "mubins": mubins,
+            "smin": smin,
+            "smax": smax,
+            "sbinsize": sbinsize,
+            "zmin": zmin,
+            "zmax": zmax,
+            "redshift_key": redshift_key,
+        }
+
+        for param, expected in params_to_check.items():
+            if expected is not None and info.get(param) != expected:
+                if debug:
+                    print(
+                        f"{param} mismatch: expected {expected}, got {info.get(param)}"
+                    )
+                matches = False
         if matches:
             matching_files.append(os.path.join(directory, filename))
 
@@ -511,7 +513,7 @@ def rotate_catalog(df_catalog, angle1_key, angle2_key):
     df_catalog = df_catalog.with_columns(
         [pl.Series(name=angle1_key, values=b1r), pl.Series(name=angle2_key, values=b2r)]
     )
-    
+
     return df_catalog
 
 
