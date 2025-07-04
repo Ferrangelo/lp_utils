@@ -524,6 +524,8 @@ def check_correct_filtering(
     angle1_max,
     angle2_min,
     angle2_max,
+    angle1_key,
+    angle2_key,
     filter_z,
     zmin,
     zmax,
