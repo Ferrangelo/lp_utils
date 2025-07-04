@@ -399,15 +399,6 @@ def find_corrfunc_files(
 
     return matching_files, identifier
 
-
-def get_out_filename(filename, filepath):
-    _, test_path = set_paths()
-    output_file = test_path + filename
-    if filepath.endswith(".txt"):
-        output_file = test_path + filename.split("txt")[0] + "parquet"
-    return output_file
-
-
 def sample_and_save_test(filename, filepath):
     output_file = get_out_filename(filename, filepath)
     if os.path.exists(output_file):
