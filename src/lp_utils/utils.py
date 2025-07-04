@@ -80,6 +80,7 @@ def filter_catalog(
     height=None,
     zmin=None,
     zmax=None,
+    zkey=None,
 ):
     if not narrow:
         return df.filter(pl.col("z0").is_between(0.05, 0.465))
@@ -91,11 +92,11 @@ def filter_catalog(
             raise ValueError("zmin and zmax must be provided when filter_z is True")
 
         zcols = [col for col in df.columns if col.startswith("z")]
-        if len(zcols) != 1:
-            print("More than one z column found, using z0")
-            zkey = "z0"
-        else:
+        if zkey is None:
             zkey = zcols[0]
+            if len(zcols) != 1:
+                print("More than one z column found, using z0")
+                zkey = "z0"
         print(f"zkey: {zkey}")
         filters.append(pl.col(zkey).is_between(zmin, zmax))
 
@@ -399,48 +400,6 @@ def find_corrfunc_files(
 
     return matching_files, identifier
 
-def sample_and_save_test(filename, filepath):
-    output_file = get_out_filename(filename, filepath)
-    if os.path.exists(output_file):
-        print("File already exists, skipping...")
-        return
-    else:
-        print(f"{output_file}")
-        if filepath.endswith(".parquet"):
-            sample_and_save_test_parquet(filepath, output_file)
-        elif filepath.endswith(".txt"):
-            sample_and_save_test_txt(filepath, output_file)
-        else:
-            print("File format not supported")
-            return
-
-
-def sample_and_save_test_parquet(filepath, output_file):
-    df = pl.read_parquet(filepath)
-    samp_df = df.sample(n=100000, with_replacement=False)
-    # Assuming the columns are in the correct order, rename them
-    samp_df = samp_df.rename(
-        {
-            samp_df.columns[0]: "angle1",
-            samp_df.columns[1]: "angle2",
-            samp_df.columns[2]: "d_or_z",
-        }
-    )
-    samp_df.write_parquet(output_file)
-
-
-def sample_and_save_test_txt(filepath, output_file):
-    df_read = np.loadtxt(filepath).T
-    npoints = 100000
-    step = len(df_read[0]) // npoints
-    b1 = df_read[0][::step]
-    b2 = df_read[1][::step]
-    z = df_read[2][::step]
-    samp_df = pl.DataFrame(
-        {"angle1": b1.tolist(), "angle2": b2.tolist(), "d_or_z": z.tolist()}
-    )
-    samp_df.write_parquet(output_file)
-
 
 def read_test_file_and_plot(filepath):
     samp_df = pl.read_parquet(filepath)
@@ -518,3 +477,65 @@ def get_output_filename(type, narrow, filter_z, zmin, zmax, N_particles, suffix)
         else:
             filename = f"{type}_catalog_{N_particles:.2e}_narrow{suffix}"
     return filename
+
+
+def extract_z_range(filename):
+    zmin_match = re.search(r"zmin_(\d+\.\d+)", filename)
+    zmax_match = re.search(r"zmax_(\d+\.\d+)", filename)
+
+    zmin = float(zmin_match.group(1)) if zmin_match else None
+    zmax = float(zmax_match.group(1)) if zmax_match else None
+
+    return zmin, zmax
+
+
+def get_file_length(filename: str) -> int:
+    if filename.endswith(".parquet"):
+        return pl.scan_parquet(filename).select(pl.len()).collect().item()
+    elif filename.endswith(".txt"):
+        return (
+            pl.scan_csv(filename, separator=" ", has_header=False)
+            .select(pl.len())
+            .collect()
+            .item()
+        )
+    else:
+        raise ValueError(f"Unsupported file type: {filename}")
+
+
+def write_df_final_output(df_final, output_path, test_output_path):
+    print(f"Writing output in {output_path}")
+    (
+        df_final.write_csv(
+            output_path,
+            separator=" ",
+            include_header=False,
+        )
+    )
+
+    print(f"Writing test output in {test_output_path}")
+    df_final.sample(n=100000, with_replacement=False).write_parquet(test_output_path)
+
+
+def check_correct_filtering(
+    narrow,
+    filtered_catalog,
+    angle1_min,
+    angle1_max,
+    angle2_min,
+    angle2_max,
+    filter_z,
+    zmin,
+    zmax,
+    redshift_key,
+):
+    if narrow:
+        assert filtered_catalog[angle1_key].max() < angle1_max
+        assert filtered_catalog[angle1_key].min() > angle1_min
+
+        assert filtered_catalog[angle2_key].max() < angle2_max
+        assert filtered_catalog[angle2_key].min() > angle2_min
+
+    if filter_z:
+        assert filtered_catalog[redshift_key].max() < zmax
+        assert filtered_catalog[redshift_key].min() > zmin
