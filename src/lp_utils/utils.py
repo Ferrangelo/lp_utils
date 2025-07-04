@@ -92,11 +92,23 @@ def filter_catalog(
             raise ValueError("zmin and zmax must be provided when filter_z is True")
 
         zcols = [col for col in df.columns if col.startswith("z")]
+        if not zcols:
+            raise ValueError("No z column found")
+
         if zkey is None:
-            zkey = zcols[0]
-            if len(zcols) != 1:
-                print("More than one z column found, using z0")
-                zkey = "z0"
+            zkey = zcols[0] if len(zcols) == 1 else "z0"
+            msg = (
+                f"Only one z column found: using {zkey}"
+                if len(zcols) == 1
+                else f"Multiple z columns found, using {zkey}"
+            )
+            print(msg)
+        else:
+            if zkey not in zcols:
+                raise ValueError(
+                    f"Specified zkey '{zkey}' not found in available z columns: {zcols}"
+                )
+
         print(f"zkey: {zkey}")
         filters.append(pl.col(zkey).is_between(zmin, zmax))
 
