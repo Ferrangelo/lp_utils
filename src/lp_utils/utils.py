@@ -553,3 +553,44 @@ def check_correct_filtering(
     if filter_z:
         assert filtered_catalog[redshift_key].max() < zmax
         assert filtered_catalog[redshift_key].min() > zmin
+
+
+def load_jsons_from_dir(json_dir, pattern=None, key_extractor=None):
+    """
+    Load JSON file paths into a dictionary with dynamic keys.
+    
+    Parameters:
+    -----------
+    json_dir : str
+        Directory containing JSON files
+    pattern : str, optional
+        Regex pattern to filter files (default: matches files with x followed by numbers)
+    key_extractor : callable, optional
+        Function to extract key from filename (default: extracts 'x10', 'x20', etc.)
+    
+    Returns:
+    --------
+    dict : Dictionary with extracted keys and full file paths
+    """
+    
+    # Default pattern to match files like 'narrow_z0_0.9_1.1_x10.json'
+    if pattern is None:
+        pattern = r'.*x(\d+)\.json$'
+    
+    # Default key extractor to get 'x10', 'x20', etc.
+    if key_extractor is None:
+        key_extractor = lambda filename: f"x{re.search(r'x(\d+)', filename).group(1)}" if re.search(r'x(\d+)', filename) else None
+    
+    jsons = {}
+    json_dir = Path(json_dir)
+    
+    for file_path in json_dir.glob('*.json'):
+        filename = file_path.name
+        
+        # Check if file matches pattern
+        if re.match(pattern, filename):
+            key = key_extractor(filename)
+            if key:
+                jsons[key] = str(file_path)
+    
+    return jsons
