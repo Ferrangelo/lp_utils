@@ -1,9 +1,13 @@
 import json
 from pathlib import Path
 
+import jax
+import jax.numpy as jnp
+from jax.scipy.special import hyp2f1
 import numpy as np
 from scipy import integrate, interpolate
-from scipy.special import hyp2f1
+
+# from scipy.special import hyp2f1
 from scipy.optimize import fsolve
 
 from lp_utils.utils import SPEED_OF_LIGHT, read_json
@@ -133,7 +137,7 @@ class Cosmology:
         return distance_cubic_interp
 
     def growth_factor(self, z_input, norm="0"):
-        z = np.asarray(z_input)
+        z = jnp.asarray(z_input)
         a = 1 / (1 + z)
         if norm == "MD":
             return hyp2f1(1 / 3, 1, 11 / 6, (self.Omega_m - 1) * a**3 / (self.Omega_m))
@@ -200,9 +204,13 @@ def growth_factor(z, Om=0.31, norm="0"):
 
 
 def xiLS(N, Nr, dd_of_s, dr_of_s, rr_of_s):
-    return (
-        Nr * (Nr - 1) / (N * (N - 1)) * dd_of_s - 2 * (Nr - 1) / N * dr_of_s
-    ) / rr_of_s + 1
+    dd = dd_of_s / (N * (N - 1))
+    dr = dr_of_s / (N * Nr)
+    rr = rr_of_s / (Nr * (Nr - 1))
+    return (dd - 2 * dr) / rr + 1
+    # return (
+    # Nr * (Nr - 1) / (N * (N - 1)) * dd_of_s - 2 * (Nr - 1) / N * dr_of_s
+    # ) / rr_of_s + 1
 
 
 def change_sigma8(k, P, sigma8_wanted):
