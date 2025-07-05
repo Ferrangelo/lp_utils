@@ -1,13 +1,11 @@
 import json
 from pathlib import Path
 
-import jax
 import jax.numpy as jnp
-from jax.scipy.special import hyp2f1
 import numpy as np
 from scipy import integrate, interpolate
 
-# from scipy.special import hyp2f1
+from scipy.special import hyp2f1
 from scipy.optimize import fsolve
 
 from lp_utils.utils import SPEED_OF_LIGHT, read_json
