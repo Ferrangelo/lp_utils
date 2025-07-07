@@ -43,11 +43,14 @@ def filter_catalog(
     zmin=None,
     zmax=None,
     zkey=None,
+    angle_filter=True
 ):
     if not narrow:
         return df.filter(pl.col("z0").is_between(0.05, 0.465))
 
-    filters = filters_angles(df, angle1min, angle2min, width, height)
+    filters = []
+    if angle_filter:
+        filters.append(filters_angles(df, angle1min, angle2min, width, height))
 
     if filter_z:
         if zmin is None or zmax is None:
@@ -309,7 +312,7 @@ def read_test_file_and_plot(filepath):
         plt.ylabel(r"angle1", fontsize=9)
         plt.tight_layout()
 
-    for col3 in ["d_or_z", "z0", "z1", "z2", "z3", "z4", "z5", "zrsd"]:
+    for col3 in ["d_or_z", "z0", "z1", "z2", "z3", "z4", "z5", "zrsd", "z"]:
         if col3 in samp_df.columns:
             z = samp_df[col3]
             plt.figure(figsize=(8, 5))
