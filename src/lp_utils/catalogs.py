@@ -75,7 +75,7 @@ def filter_catalog(
                 )
 
         print(f"zkey: {zkey}")
-        filters.append(pl.col(zkey).is_between(zmin, zmax))
+        filters.extend(pl.col(zkey).is_between(zmin, zmax))
 
     return df.filter(pl.all_horizontal(filters))
 
