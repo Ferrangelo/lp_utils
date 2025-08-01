@@ -50,7 +50,7 @@ def filter_catalog(
 
     filters = []
     if angle_filter:
-        filters.append(filters_angles(df, angle1min, angle2min, width, height))
+        filters.extend(filters_angles(df, angle1min, angle2min, width, height))
 
     if filter_z:
         if zmin is None or zmax is None:
@@ -75,7 +75,7 @@ def filter_catalog(
                 )
 
         print(f"zkey: {zkey}")
-        filters.extend(pl.col(zkey).is_between(zmin, zmax))
+        filters.append(pl.col(zkey).is_between(zmin, zmax))
 
     return df.filter(pl.all_horizontal(filters))
 
