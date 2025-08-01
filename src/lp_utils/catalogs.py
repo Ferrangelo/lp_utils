@@ -263,7 +263,11 @@ def write_df_final_output(df_final, output_path, test_output_path):
     )
 
     print(f"Writing test output in {test_output_path}")
-    df_final.sample(n=100000, with_replacement=False).write_parquet(test_output_path)
+    nsample = int(100000)
+    if df_final.height > nsample:
+        df_final.sample(n=100000, with_replacement=False).write_parquet(test_output_path)
+    else:
+        df_final.write_parquet(test_output_path)
 
 
 def check_correct_filtering(
